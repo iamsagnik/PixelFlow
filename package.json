@@ -2,15 +2,19 @@
   "name": "pixelflow",
   "version": "1.0.0",
   "description": "Trying to make a clone of youtube.",
+  "type": "module",
   "keywords": [
     "javascript",
     "backend"
   ],
   "license": "ISC",
   "author": "SAGNIK MITRA",
-  "type": "commonjs",
   "main": "index.js",
   "scripts": {
+    "dev": "nodemon src/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
   }
 }
