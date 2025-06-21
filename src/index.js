@@ -4,8 +4,21 @@ import dotenv from "dotenv";
 import connectDB from './db/index.js';
 
 dotenv.config({path: './env'});
+import express from "express";
 
-connectDB();
+const app = express();
+
+connectDB()
+.then(() => {
+  const port = process.env.PORT || 3000;
+  app.listen(port, () => {
+    console.log(`Listening on port ${port}`);
+  });
+})
+.catch((err) => {
+  console.error(err);
+  process.exit(1);
+});
 
 
 
