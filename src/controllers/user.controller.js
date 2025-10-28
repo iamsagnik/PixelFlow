@@ -83,12 +83,15 @@ const registerUser = asyncHandler(async (req, res) => {
     username: username.toLowerCase(),
     password,
     avatar: avatar.url,
-    coverImage: coverImage?.url || "",
+    coverImage: coverImage ? {
+      url: coverImage.url,
+      public_id: coverImage.public_id
+    } : null
   });
 
   console.log(user);
 
-  const createdUser =await User.findById(user._id).select(
+  const createdUser = await User.findById(user._id).select(
     "-password -refreshtoken"
   );
   if(!createdUser){
@@ -134,7 +137,7 @@ const loginUser = asyncHandler(async (req, res) => {
 
   const options = {
     // expires: new Date(Date.now() + process.env.COOKIE_EXPIRY * 24 * 60 * 60 * 1000),
-    httpOnly: true,
+    httpOnly: true,   // cookie is only accessible by the server
     secure: true,
     // sameSite: "none"
   }
@@ -268,7 +271,7 @@ const updateAccountDetails = asyncHandler(async (req, res) => {
         email  // this means email: email
       }
     },
-    {new: true}
+    {new: true}   // to return the updated document
   ).select("-password -refreshToken");
 
   return res
@@ -309,31 +312,41 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
 
 const updateUserCoverImage = asyncHandler(async (req, res) => {
 
+  const user = req.user;
+
   const coverImageLocalPath = req.file?.path;
 
   if(!coverImageLocalPath){
     throw new ApiError(400, "Cover image is required [cover image file is missing]");
   }
 
+  const oldPublicId = user?.coverImage?.public_id;
   const coverImage = await uploadOnCloudinary(coverImageLocalPath);
 
   if(!coverImage.url){
     throw new ApiError(400, "Cover image upload failed");
   }
 
- const user = await User.findByIdAndUpdate(
+  if(oldPublicId){
+    await imagedeletion(oldPublicId);   // delete the old image
+  }
+
+ const updatedUser = await User.findByIdAndUpdate(
     req.user?._id,
     {
       $set: {
-        coverImage: coverImage.url
+        coverImage: {
+          url: coverImage.url,
+          publicId: coverImage.public_id
+        }
       }
     },
-    {new: true}
-  ).select("-password -refreshToken");
+    {new: true}                           // Without { new: true } → you’d get the previous user (before name change).  
+  ).select("-password -refreshToken");    // With { new: true } → you get the freshly updated one.
 
   return res
   .status(200)
-  .json(new ApiResponse(200, user, "coverImage updated successfully"));
+  .json(new ApiResponse(200, updatedUser, "coverImage updated successfully"));
 
 
 });

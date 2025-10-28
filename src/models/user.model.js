@@ -2,7 +2,8 @@ import mongoose, {Schema, model} from "mongoose";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 
-const userSchema = new Schema(
+const userSchema = new Schema
+(
   {
     username: {
       type: String,
@@ -35,7 +36,14 @@ const userSchema = new Schema(
       default: "",
     },
     coverImage: {
-      type: String,  // cloudinary url
+      url: { 
+        type: String, 
+        default: "https://i.pinimg.com/736x/62/01/0d/62010d848b790a2336d1542fcda51789.jpg",
+      },
+      public_id: { 
+        type: String, 
+        default: "none",
+      },
     },
     watchHistory: [
       {
