@@ -9,6 +9,7 @@ import mongoose from "mongoose";
 const generateAccessandRefreshTokens = async (userId) => {
   try {
     const user = await User.findById(userId);
+    if (!user) throw new ApiError(404, "User not found");
     const accessToken = await user.generateAccessToken();
     const refreshToken = await user.generateRefreshToken();
 
@@ -17,6 +18,7 @@ const generateAccessandRefreshTokens = async (userId) => {
 
     return { accessToken, refreshToken };
   } catch (error) {
+    console.error("Token generation failed:", error);
     throw new ApiError(500, "Token generation failed");
   }
 
@@ -110,7 +112,7 @@ const loginUser = asyncHandler(async (req, res) => {
   // generate refresh and access tokens
   // send secure cookies to the user
 
-  const {fullName, email, username, password} = req.body;
+  const { email, username, password} = req.body;
 
   if(!(email || username)){
     throw new ApiError(400, "Username or email is required");
@@ -162,8 +164,8 @@ const logoutUser = asyncHandler(async (req, res) => {
   await User.findByIdAndUpdate(
     req.user._id,
     {
-      $set: {
-        refreshToken: undefined
+      $unset: {
+        refreshToken: 1
       }
     },
     {
@@ -235,7 +237,7 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
 
   const {oldPassword, newPassword} = req.body;
 
-  const user = await User.find(req.user?._id);
+  const user = await User.findById(req.user?._id);
   const isPasswordValid = await user.isPasswordCorrect(oldPassword);
 
   if(!isPasswordValid){
@@ -260,8 +262,8 @@ const getCurrentUser = asyncHandler(async (req, res) => {
 const updateAccountDetails = asyncHandler(async (req, res) => {
   const {fullName, email} = req.body;
 
-  if(!fullName || !email){
-    throw new ApiError(400, "Full name and email is required");
+  if(!fullName && !email){
+    throw new ApiError(400, "At least one of fullName or email is required");
   }
 
   const user = await User.findByIdAndUpdate(
@@ -354,15 +356,15 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
 
 const getUserChannelProfile = asyncHandler(async (req, res) => {
 
-  const {userName} = req.params;
+  const {username} = req.params;
 
-  if(!userName?.trim()){
+  if(!username?.trim()){
     throw new ApiError(400, "User name is required");
   }
 
   const channel = await User.aggregate([{
     $match: {
-      username: userName?.toLowerCase()
+      username: username?.toLowerCase()
     }
   },{
     $lookup: {
@@ -423,7 +425,7 @@ return res
 
 const getUserWatchHistory = asyncHandler(async (req, res) => {
   
-  const user = User.aggregate([{
+  const user = await User.aggregate([{
     $match: {
       _id: new mongoose.Types.ObjectId(req.user?._id)
     }
@@ -462,6 +464,10 @@ const getUserWatchHistory = asyncHandler(async (req, res) => {
       ]
     }
   }])
+
+  if (!user || user.length === 0) {
+    return res.status(404).json(new ApiResponse(404, null, "User not found"));
+  }
 
   return res
   .status(200)
