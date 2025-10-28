@@ -18,12 +18,10 @@ app.use(cookieParser());
 
 
 // routes import
-import userRouter from './routes/user.routes.js';
-console.log("user.routes.js loaded");
+import userRouter from './routes/user.routes.js'; console.log("user.routes.js loaded");
 
 // routes declaration
-app.use("/api/v1/users", userRouter);
-// http://localhost:8000/api/v1/users/register
+app.use("/api/v1/users", userRouter); // http://localhost:8000/api/v1/users/register
 
 
 export default app
