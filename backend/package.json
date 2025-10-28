@@ -1,7 +1,7 @@
 {
   "name": "pixelflow",
   "version": "1.0.0",
-  "description": "Trying to make a clone of youtube.",
+  "description": "backend for pixelflow",
   "type": "module",
   "keywords": [
     "javascript",
