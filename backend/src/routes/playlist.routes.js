@@ -31,3 +31,5 @@ router
 router
 .route("/user/:user_id")  // /playlist/user/:user_id?page=x&limit=y
 .get(getAllPlaylistsOfUser);
+
+export default router;
