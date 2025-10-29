@@ -13,7 +13,7 @@ app.use(express.json({limit: '1mb'}));
 app.use(
   express.urlencoded({limit: '1mb', extended: true})
 );
-app.use(express.static('public')); 
+app.use(express.static('public')); // it turns your public folder into a lightweight file server
 app.use(cookieParser());
 
 
