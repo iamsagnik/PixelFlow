@@ -7,6 +7,10 @@ const tweetSchema = new mongoose.Schema
       type: String,
       required: true,
     },
+    giphy : {
+      type: String,
+      default: "",
+    },
     owner : {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
