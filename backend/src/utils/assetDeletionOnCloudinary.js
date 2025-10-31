@@ -1,8 +1,8 @@
 import {v2 as cloudinary} from "cloudinary";
 
-const assetdeletion = async (public_id) =>{
+const assetDeletionOnCloudinary = async (public_id) =>{
   
-  // delete the images from the cloudinary
+  // delete the assets from the cloudinary
   try {
     const response = await cloudinary.uploader.destroy(public_id,{
       resource_type: "auto",
@@ -14,4 +14,4 @@ const assetdeletion = async (public_id) =>{
   }
 }
 
-export {assetdeletion};
+export {assetDeletionOnCloudinary};
