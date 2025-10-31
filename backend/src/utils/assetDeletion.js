@@ -1,4 +1,6 @@
-const imagedeletion = async (public_id) =>{
+import {v2 as cloudinary} from "cloudinary";
+
+const assetdeletion = async (public_id) =>{
   
   // delete the images from the cloudinary
   try {
@@ -12,4 +14,4 @@ const imagedeletion = async (public_id) =>{
   }
 }
 
-export {imagedeletion}
+export {assetdeletion};
