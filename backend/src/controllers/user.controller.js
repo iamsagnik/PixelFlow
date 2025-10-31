@@ -1,7 +1,8 @@
 import {asyncHandler} from "../utils/asyncHandler.js";
 import ApiError from "../utils/ApiError.js";
 import { User } from "../models/user.model.js";
-import uploadOnCloudinary from "../utils/cloudinary.js";
+import assetUploadOnCloudinary from "../utils/assetUploadOnCloudinary.js";
+import assetDeletionOnCloudinary from "../utils/assetDeletionOnCloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
@@ -11,12 +12,12 @@ const generateAccessandRefreshTokens = async (userId) => {
     const user = await User.findById(userId);
     if (!user) throw new ApiError(404, "User not found");
     const accessToken = await user.generateAccessToken();
-    const refreshToken = await user.generateRefreshToken();
+    const newRefreshToken = await user.generateRefreshToken();
 
-    user.refreshToken = refreshToken;
-    await user.save({ValidateBeforeSave: false});
+    user.refreshToken = newRefreshToken;
+    await user.save({validateBeforeSave: false});
 
-    return { accessToken, refreshToken };
+    return { accessToken, newRefreshToken };
   } catch (error) {
     console.error("Token generation failed:", error);
     throw new ApiError(500, "Token generation failed");
@@ -71,11 +72,11 @@ const registerUser = asyncHandler(async (req, res) => {
   }
 
   // upload on uploadCloudinary
-  const avatar = await uploadOnCloudinary(avatarLocalPath);
-  const coverImage = await uploadOnCloudinary(coverImageLocalPath);
+  const avatar = await assetUploadOnCloudinary(avatarLocalPath);
+  const coverImage = await assetUploadOnCloudinary(coverImageLocalPath);
 
   // check for avatar once again
-  if(!avatar){
+  if(!avatar || !avatar.url){
     throw new ApiError(400, "Avatar upload failed");
   }
 
@@ -85,7 +86,10 @@ const registerUser = asyncHandler(async (req, res) => {
     email,
     username,
     password,
-    avatar: avatar.url,
+    avatar: {
+      url: avatar.url,
+      public_id: avatar.public_id
+    },
     coverImage: coverImage ? {
       url: coverImage.url,
       public_id: coverImage.public_id
@@ -95,10 +99,10 @@ const registerUser = asyncHandler(async (req, res) => {
   console.log(user);
 
   const createdUser = await User.findById(user._id).select(
-    "-password -refreshtoken"
+    "-password -refreshToken"
   );
   if(!createdUser){
-    throw new ApiError(500, "Something went wrong while regestering user");
+    throw new ApiError(500, "Something went wrong while registering user");
   }
 
   return res.status(201).json(new ApiResponse(201, "User registered successfully", createdUser));
@@ -135,7 +139,7 @@ const loginUser = asyncHandler(async (req, res) => {
   const {accessToken, refreshToken} = await generateAccessandRefreshTokens(user._id);
 
   const loggedUser = await User.findById(user._id).select(
-    "-password -refreshtoken"
+    "-password -refreshToken"
   );
 
   const options = {
@@ -213,19 +217,24 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
       secure: true,
     }
   
-    const {accessToken, NewrefreshToken} = await generateAccessandRefreshTokens(user._id);
+    const {accessToken, newRefreshToken} = await generateAccessandRefreshTokens(user._id);
   
     return res
     .status(200)
     .cookie("accessToken", accessToken, options)
-    .cookie("refreshToken", NewrefreshToken, options)
+    .cookie("refreshToken", newRefreshToken, options)
     .json(
       new ApiResponse(
         200, 
-        {accessToken, refreshToken: NewrefreshToken},
+        {accessToken, refreshToken: newRefreshToken},
         "Access token refreshed successfully")
     );
   } catch (error) {
+    
+    if (error.name === "TokenExpiredError") {
+      throw new ApiError(401, "Refresh token expired");
+    }
+
     throw new ApiError(401, error?.message || "Invalid Refresh Token");
     
   }
@@ -245,7 +254,7 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
   }
 
   user.password = newPassword;
-  await user.save({ValidateBeforeSave: false});
+  await user.save({validateBeforeSave: false});
 
   return res
   .status(200)
@@ -264,6 +273,18 @@ const updateAccountDetails = asyncHandler(async (req, res) => {
 
   if(!fullName && !email){
     throw new ApiError(400, "At least one of fullName or email is required");
+  }
+
+  const existedUserWithEmail = await User.findOne({email});
+  const exitedUserWithUsername = await User.findOne({username});
+
+
+  if(existedUserWithEmail && existedUser._id.equals(req.user?._id)){   // added to check if the email already exists
+    throw new ApiError(400, "Email already exists");
+  }
+
+  if(exitedUserWithUsername && exitedUser._id.equals(req.user?._id)){   // added to check if the username already exists
+    throw new ApiError(400, "Username already exists");
   }
 
   const user = await User.findByIdAndUpdate(
@@ -290,17 +311,26 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Avatar is required [avatar file is missing]");
   }
 
-  const avatar = await uploadOnCloudinary(avatarLocalPath);
+  const avatar = await assetUploadOnCloudinary(avatarLocalPath);
 
-  if(!avatar.url){
+  if(!avatar || !avatar.url){
     throw new ApiError(400, "Avatar upload failed");
+  }
+
+  const oldPublicId = req.user?.avatar?.public_id;
+  if(oldPublicId){
+    await assetDeletionOnCloudinary(oldPublicId);   // delete the old image
   }
 
  const user = await User.findByIdAndUpdate(
     req.user?._id,
     {
       $set: {
-        avatar: avatar.url
+        avatar: {
+          url: avatar.url,
+          public_id: avatar.public_id
+        }
+
       }
     },
     {new: true}
@@ -317,21 +347,21 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
 
   const user = req.user;
 
-  const coverImageLocalPath = req.file?.path;
+  const coverImageLocalPath = req.files?.coverImage?.[0]?.path;
 
   if(!coverImageLocalPath){
     throw new ApiError(400, "Cover image is required [cover image file is missing]");
   }
 
   const oldPublicId = user?.coverImage?.public_id;
-  const coverImage = await uploadOnCloudinary(coverImageLocalPath);
+  const coverImage = await assetUploadOnCloudinary(coverImageLocalPath);
 
-  if(!coverImage.url){
+  if(!coverImage || !coverImage.url){
     throw new ApiError(400, "Cover image upload failed");
   }
 
   if(oldPublicId){
-    await imagedeletion(oldPublicId);   // delete the old image
+    await assetDeletionOnCloudinary(oldPublicId);   // delete the old image
   }
 
  const updatedUser = await User.findByIdAndUpdate(
@@ -340,7 +370,7 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
       $set: {
         coverImage: {
           url: coverImage.url,
-          publicId: coverImage.public_id
+          public_id: coverImage.public_id
         }
       }
     },
@@ -424,10 +454,16 @@ return res
 });
 
 const getUserWatchHistory = asyncHandler(async (req, res) => {
+
+  const user_id = req.user?._id;
+
+  if(!user_id){
+    throw new ApiError(400, "User id is required");
+  }
   
   const user = await User.aggregate([{
     $match: {
-      _id: new mongoose.Types.ObjectId(req.user?._id)
+      _id: new mongoose.Types.ObjectId(`${user_id}`)  // will not take numbers so explicitely have to told it that we are sending string
     }
   },{
     $lookup: {

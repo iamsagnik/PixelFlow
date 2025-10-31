@@ -29,9 +29,14 @@ const userSchema = new Schema
       index: true
     },
     avatar: {
-      type: String,  // cloudinary url
-      required: true,
-      default: "",
+      url: { 
+        type: String, 
+        required: true  // need to choose between required and default
+      },
+      public_id: { 
+        type: String, 
+        required: true 
+      }
     },
     coverImage: {
       url: { 
