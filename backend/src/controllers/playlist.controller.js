@@ -5,6 +5,7 @@ import { User } from "../models/user.model.js";
 import { Video } from "../models/video.model.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import mongoose from "mongoose";
+import { deleteAllLikesForAsset } from "./like.controller.js";
 
 // create a playlist
 const createPlaylist = asyncHandler(async (req, res) => {
@@ -93,7 +94,17 @@ const deletePlaylist = asyncHandler(async (req, res) => {
     throw new ApiError(403, "Unauthorized to delete this playlist");
   }
 
+  const deletedLikes = await deleteAllLikesForAsset("playlist", playlist_id);
+
+  if(!deletedLikes){
+    throw new ApiError(500, "Error deleting likes");
+  }
+
   const deletedPlaylist = await Playlist.findByIdAndDelete(playlist_id);
+
+  if(!deletedPlaylist){
+    throw new ApiError(500, "Error deleting playlist");
+  }
 
   return res.status(200).json(new ApiResponse(200, deletedPlaylist, "Playlist deleted successfully"));
 

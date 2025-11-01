@@ -178,6 +178,12 @@ const deleteMyComment = asyncHandler(async (req, res) => {
     throw new ApiError(403, "Unauthorized to delete this comment");
   }
 
+  const deletedLikes = await deleteAllLikesForAsset("comment", comment_id);
+
+  if(!deletedLikes) {
+    throw new ApiError(500, "Failed to delete likes");
+  }
+
   const deletedComment = await Comment.findByIdAndDelete(comment_id);
 
   if(!deletedComment) {

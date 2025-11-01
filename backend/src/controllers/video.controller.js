@@ -205,6 +205,12 @@ const deleteVideo = asyncHandler(async (req, res) => {
     throw new ApiError(500, "Error deleting thumbnail from cloudinary");
   }
 
+  const deletedLikes = await deleteAllLikesForAsset("video", video_id);
+
+  if(!deletedLikes){
+    throw new ApiError(500, "Error deleting likes for video");
+  }
+
   const deletedVideo = await Video.findByIdAndDelete(video_id);
 
   if(!deletedVideo) throw new ApiError(500, "Error deleting video");
