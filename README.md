@@ -83,7 +83,7 @@ and `e = 10` prevents extreme values.
 
 ```bash
 # Clone the repository
-git clone https://github.com/<your-username>/pixelflow.git
+git clone https://github.com/iamsagnik/pixelflow.git
 
 # Navigate to project directory
 cd pixelflow
