@@ -2,10 +2,12 @@ import mongoose from "mongoose";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import ApiError from "../utils/ApiError.js";
-import { VideoLike } from "../models/like.model.js";
-import { CommentLike } from "../models/like.model.js";
-import { FlowBoardLike } from "../models/like.model.js";
-import { PlaylistLike } from "../models/like.model.js";
+import { 
+  VideoLike,
+  CommentLike,
+  FlowLike,
+  PlaylistLike 
+} from "../models/like.model.js";
 
 
 // Toggle like
@@ -20,7 +22,7 @@ const toggleLike = asyncHandler(async (req, res, next) => {
   const refMap = {
     video: VideoLike,
     comment: CommentLike,
-    flowboard: FlowBoardLike,
+    flow: FlowLike,
     playlist: PlaylistLike
   };
 
@@ -55,24 +57,24 @@ const getUserLikes = asyncHandler(async (req, res) => {
 
     const userId = req.user._id;
 
-    const [videos, comments, flowboards, playlists] = await Promise.all([
+    const [videos, comments, flows, playlists] = await Promise.all([
       VideoLike.find({ likedBy: userId }).populate("video"),
       CommentLike.find({ likedBy: userId }).populate("comment"),
-      FlowBoardLike.find({ likedBy: userId }).populate("flowBoard"),
+      FlowLike.find({ likedBy: userId }).populate("flow"),
       PlaylistLike.find({ likedBy: userId }).populate("playlist"),
     ]);
 
     if (
       !videos.length &&
       !comments.length &&
-      !flowboards.length &&
+      !flows.length &&
       !playlists.length
     ) {
       throw new ApiError(404, "No likes found for this user");
     }
 
 
-    return res.status(200).json(new ApiResponse(200, { videos, comments, flowboards, playlists }, "User likes found successfully"));
+    return res.status(200).json(new ApiResponse(200, { videos, comments, flows, playlists }, "User likes found successfully"));
 });
 
 // Get likes for an asset
@@ -82,7 +84,7 @@ const getLikesForAsset = asyncHandler(async (req, res) => {
   const refMap = {
     video: VideoLike,
     comment: CommentLike,
-    flowboard: FlowBoardLike,
+    flow: FlowLike,
     playlist: PlaylistLike,
   };
 
@@ -124,7 +126,7 @@ const isAssetLikedByUser = asyncHandler(async (req, res) => {
   const refMap = {
     video: VideoLike,
     comment: CommentLike,
-    flowboard: FlowBoardLike,
+    flow: FlowLike,
     playlist: PlaylistLike,
   };
 
@@ -144,7 +146,7 @@ const deleteAllLikesForAsset = async (asset_type, asset_id) => {
   const refMap = {
     video: VideoLike,
     comment: CommentLike,
-    flowboard: FlowBoardLike,
+    flow: FlowLike,
     playlist: PlaylistLike,
   };
 

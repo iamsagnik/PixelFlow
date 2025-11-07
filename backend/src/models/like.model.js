@@ -48,7 +48,7 @@ export const CommentLike = Like.discriminator("CommentLike", commentLike);
 
 // flowBoard
 
-const flowboardLike = new mongoose.Schema({
+const flowLike = new mongoose.Schema({
   flow: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "FlowBoard",
@@ -57,8 +57,8 @@ const flowboardLike = new mongoose.Schema({
   }
 )
 
-flowboardLike.index({ likedBy: 1, flow: 1 }, { unique: true });
-export const FlowBoardLike = Like.discriminator("FlowboardLike", flowboardLike);
+flowLike.index({ likedBy: 1, flow: 1 }, { unique: true });
+export const FlowLike = Like.discriminator("FlowLike", flowLike);
 
 // playlist
 
