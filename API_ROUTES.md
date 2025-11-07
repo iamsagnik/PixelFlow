@@ -111,7 +111,3 @@ A structured reference for all REST API endpoints used in the **PixelFlow** proj
 * Pagination is supported across all list-based routes (`page` and `limit` query params).
 
 ---
-
-**Author:** Leo Conan
-**Project:** PixelFlow — YouTube × Reddit Hybrid Platform
-**Inspiration:** Based on backend structure learned from *Chai aur Code* channel.
